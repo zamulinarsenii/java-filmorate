@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -39,12 +40,12 @@ public class UserController {
         log.info("Запрос на обновление пользователя: {}", newUser);
         if (newUser.getId() == null) {
             log.warn("Попытка обновления пользователя без ID");
-            throw new ValidationException("Id пользователя должен быть указан");
+            throw new NotFoundException("Id пользователя должен быть указан");
         }
         User oldUser = users.get(newUser.getId());
         if (oldUser == null) {
             log.warn("Пользователь с id {} не найден", newUser.getId());
-            throw new ValidationException("Пользователь с id " + newUser.getId() + " не найден");
+            throw new NotFoundException("Пользователь с id " + newUser.getId() + " не найден");
         }
 
         // Валидация обновляемых полей
