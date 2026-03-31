@@ -15,10 +15,9 @@ import java.util.Map;
 @RequestMapping("/films")
 public class FilmController {
 
+    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
     private final Map<Long, Film> films = new HashMap<>();
     private long nextId = 1;
-
-    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @GetMapping
     public List<Film> findAll() {
@@ -69,7 +68,12 @@ public class FilmController {
         log.info("Фильм обновлён: {}", oldFilm);
         return oldFilm;
     }
+
     private void validateFilm(Film film) {
+        if (film.getName() == null || film.getName().isBlank()) {
+            log.warn("Название фильма пустое");
+            throw new ValidationException("Название фильма не может быть пустым");
+        }
         if (film.getDescription() != null && film.getDescription().length() > 200) {
             log.warn("Описание фильма превышает 200 символов: {}", film.getDescription().length());
             throw new ValidationException("Описание фильма не может быть длиннее 200 символов");
@@ -83,23 +87,16 @@ public class FilmController {
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
+
     private void validateFilmForCreate(Film film) {
         if (film.getId() != null) {
             log.warn("Попытка создать фильм с предустановленным id: {}", film.getId());
             throw new ValidationException("Id присваивается автоматически, не указывайте его");
         }
-        if (film.getName() == null || film.getName().isBlank()) {
-            log.warn("Название фильма пустое");
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
         validateFilm(film);
     }
 
     private void validateFilmForUpdate(Film film) {
-        if (film.getName() != null && film.getName().isBlank()) {
-            log.warn("Попытка установить пустое название при обновлении");
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
         validateFilm(film);
     }
 }

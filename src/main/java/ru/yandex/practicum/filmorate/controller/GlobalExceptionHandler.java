@@ -10,7 +10,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import java.util.Map;
 
 @Slf4j
-@RestControllerAdvice   // вместо @ControllerAdvice + @ResponseBody
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
@@ -20,7 +20,6 @@ public class GlobalExceptionHandler {
         return Map.of("error", e.getMessage());
     }
 
-    // При желании можно добавить обработку других исключений
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleGeneric(Exception e) {

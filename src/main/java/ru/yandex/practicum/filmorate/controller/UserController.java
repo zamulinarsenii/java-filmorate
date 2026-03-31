@@ -95,6 +95,7 @@ public class UserController {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
+
     private void validateUserForCreate(User user) {
         if (user.getId() != null) {
             log.warn("Попытка создать пользователя с предустановленным id: {}", user.getId());
@@ -103,6 +104,7 @@ public class UserController {
         validateUser(user);
 
     }
+
     private void validateUserForUpdate(User user) {
         validateUser(user);
     }
