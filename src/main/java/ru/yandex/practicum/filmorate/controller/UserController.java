@@ -6,8 +6,8 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -19,20 +19,16 @@ public class UserController {
     private long nextId = 1;
 
     @GetMapping
-    public Collection<User> findAll() {
+    public List<User> findAll() {
         log.debug("Текущее количество пользователей: {}", users.size());
-        return users.values();
+        return List.copyOf(users.values());
     }
 
     @PostMapping
     public User create(@RequestBody User user) {
         log.info("Запрос на создание пользователя: {}", user);
-        validateUser(user, true);
+        validateUserForCreate(user);
         user.setId(nextId++);
-        // Если имя не задано, используем логин
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
         users.put(user.getId(), user);
         log.info("Пользователь создан: {}", user);
         return user;
@@ -77,11 +73,7 @@ public class UserController {
         return oldUser;
     }
 
-    private void validateUser(User user, boolean isCreate) {
-        if (isCreate && user.getId() != null) {
-            log.warn("Попытка создать пользователя с предустановленным id: {}", user.getId());
-            throw new ValidationException("Id присваивается автоматически, не указывайте его");
-        }
+    private void validateUser(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             log.warn("Email пользователя пустой");
             throw new ValidationException("Электронная почта не может быть пустой");
@@ -103,27 +95,15 @@ public class UserController {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
+    private void validateUserForCreate(User user) {
+        if (user.getId() != null) {
+            log.warn("Попытка создать пользователя с предустановленным id: {}", user.getId());
+            throw new ValidationException("Id присваивается автоматически, не указывайте его");
+        }
+        validateUser(user);
 
+    }
     private void validateUserForUpdate(User user) {
-        if (user.getEmail() != null && user.getEmail().isBlank()) {
-            log.warn("Email пустой при обновлении");
-            throw new ValidationException("Электронная почта не может быть пустой");
-        }
-        if (user.getEmail() != null && !user.getEmail().contains("@")) {
-            log.warn("Email не содержит символ @ при обновлении: {}", user.getEmail());
-            throw new ValidationException("Электронная почта должна содержать символ @");
-        }
-        if (user.getLogin() != null && user.getLogin().isBlank()) {
-            log.warn("Логин пустой при обновлении");
-            throw new ValidationException("Логин не может быть пустым");
-        }
-        if (user.getLogin() != null && user.getLogin().contains(" ")) {
-            log.warn("Логин содержит пробелы при обновлении: {}", user.getLogin());
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.warn("Дата рождения {} в будущем при обновлении", user.getBirthday());
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
+        validateUser(user);
     }
 }

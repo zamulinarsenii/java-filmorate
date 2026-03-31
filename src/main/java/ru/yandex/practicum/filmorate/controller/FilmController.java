@@ -6,8 +6,8 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -21,15 +21,15 @@ public class FilmController {
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @GetMapping
-    public Collection<Film> findAll() {
+    public List<Film> findAll() {
         log.debug("Текущее количество фильмов: {}", films.size());
-        return films.values();
+        return List.copyOf(films.values());
     }
 
     @PostMapping
     public Film create(@RequestBody Film film) {
         log.info("Запрос на создание фильма: {}", film);
-        validateFilm(film, true);
+        validateFilmForCreate(film);
         film.setId(nextId++);
         films.put(film.getId(), film);
         log.info("Фильм создан: {}", film);
@@ -69,16 +69,7 @@ public class FilmController {
         log.info("Фильм обновлён: {}", oldFilm);
         return oldFilm;
     }
-
-    private void validateFilm(Film film, boolean isCreate) {
-        if (isCreate && film.getId() != null) {
-            log.warn("Попытка создать фильм с предустановленным id: {}", film.getId());
-            throw new ValidationException("Id присваивается автоматически, не указывайте его");
-        }
-        if (film.getName() == null || film.getName().isBlank()) {
-            log.warn("Название фильма пустое");
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
+    private void validateFilm(Film film) {
         if (film.getDescription() != null && film.getDescription().length() > 200) {
             log.warn("Описание фильма превышает 200 символов: {}", film.getDescription().length());
             throw new ValidationException("Описание фильма не может быть длиннее 200 символов");
@@ -92,24 +83,23 @@ public class FilmController {
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
+    private void validateFilmForCreate(Film film) {
+        if (film.getId() != null) {
+            log.warn("Попытка создать фильм с предустановленным id: {}", film.getId());
+            throw new ValidationException("Id присваивается автоматически, не указывайте его");
+        }
+        if (film.getName() == null || film.getName().isBlank()) {
+            log.warn("Название фильма пустое");
+            throw new ValidationException("Название фильма не может быть пустым");
+        }
+        validateFilm(film);
+    }
 
     private void validateFilmForUpdate(Film film) {
-        // Для обновления проверяем только те поля, которые переданы и не пусты
         if (film.getName() != null && film.getName().isBlank()) {
             log.warn("Попытка установить пустое название при обновлении");
             throw new ValidationException("Название фильма не может быть пустым");
         }
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            log.warn("Описание фильма превышает 200 символов при обновлении: {}", film.getDescription().length());
-            throw new ValidationException("Описание фильма не может быть длиннее 200 символов");
-        }
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            log.warn("Дата релиза {} раньше 28 декабря 1895 года при обновлении", film.getReleaseDate());
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
-        if (film.getDuration() != 0 && film.getDuration() <= 0) {
-            log.warn("Продолжительность фильма не положительная при обновлении: {}", film.getDuration());
-            throw new ValidationException("Продолжительность фильма должна быть положительным числом");
-        }
+        validateFilm(film);
     }
 }
