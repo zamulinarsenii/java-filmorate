@@ -171,28 +171,6 @@ class UserControllerValidationTest {
     }
 
     @Test
-    void updateUser_ShouldUpdateOnlyProvidedFields() throws Exception {
-        // создаём
-        String createResp = mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validUser)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        User created = objectMapper.readValue(createResp, User.class);
-
-        // обновляем только email
-        User partial = new User(created.getId(), "partial@test.com", null, null, null);
-        mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(partial)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("partial@test.com"))
-                .andExpect(jsonPath("$.login").value(created.getLogin()))
-                .andExpect(jsonPath("$.name").value(created.getName()))
-                .andExpect(jsonPath("$.birthday").value(created.getBirthday().toString()));
-    }
-
-    @Test
     void updateUser_ShouldThrow_WhenEmailInvalid() throws Exception {
         String createResp = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)

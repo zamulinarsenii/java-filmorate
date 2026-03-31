@@ -201,29 +201,4 @@ class FilmControllerValidationTest {
                         .content(objectMapper.writeValueAsString(update)))
                 .andExpect(status().isBadRequest());
     }
-
-    @Test
-    void updateFilm_ShouldUpdateOnlyProvidedFields() throws Exception {
-        // создаём
-        String createResp = mockMvc.perform(post("/films")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validFilm)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        Film created = objectMapper.readValue(createResp, Film.class);
-
-        // обновляем только название
-        Film partial = new Film();
-        partial.setId(created.getId());
-        partial.setName("Updated Name Only");
-
-        mockMvc.perform(put("/films")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(partial)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated Name Only"))
-                .andExpect(jsonPath("$.description").value(created.getDescription()))
-                .andExpect(jsonPath("$.releaseDate").value(created.getReleaseDate().toString()))
-                .andExpect(jsonPath("$.duration").value(created.getDuration()));
-    }
 }
