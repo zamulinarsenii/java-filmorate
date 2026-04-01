@@ -86,14 +86,20 @@ public class UserService {
     }
 
     public void removeFriend(long userId, long friendId) {
+        if (userId == friendId) {
+            log.warn("Попытка удалить самого себя из друзей");
+            throw new ValidationException("Нельзя удалить самого себя из друзей");
+        }
+
         log.info("Удаление друга: userId={}, friendId={}", userId, friendId);
         User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
 
         if (!user.getFriends().contains(friendId)) {
             log.debug("Пользователь {} не является другом {}", userId, friendId);
             throw new NotFoundException("Пользователь с id " + friendId + " не является другом");
         }
+
+        User friend = userStorage.findById(friendId);
 
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
