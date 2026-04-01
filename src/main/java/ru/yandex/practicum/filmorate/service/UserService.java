@@ -111,9 +111,6 @@ public class UserService {
 
     public List<User> getFriends(long userId) {
         User user = userStorage.findById(userId);
-        if (user.getFriends().isEmpty()) {
-            throw new NotFoundException("У пользователя с id " + userId + " нет друзей");
-        }
         return user.getFriends().stream()
                 .map(userStorage::findById)
                 .collect(Collectors.toList());
