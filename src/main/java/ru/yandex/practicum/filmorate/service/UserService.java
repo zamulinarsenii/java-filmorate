@@ -22,9 +22,11 @@ public class UserService {
     public List<User> findAll() {
         return userStorage.findAll();
     }
+
     public User findById(long id) {
         return userStorage.findById(id);
     }
+
     public User create(User user) {
         log.info("Создание пользователя: {}", user);
         validateUserForCreate(user);
