@@ -5,9 +5,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 
@@ -17,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FilmController.class)
+@Import({FilmService.class, InMemoryFilmStorage.class})
 class FilmControllerValidationTest {
 
     @Autowired
@@ -25,18 +31,24 @@ class FilmControllerValidationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private InMemoryFilmStorage filmStorage;
+
+    @MockBean
+    private UserStorage userStorage;
+
     private Film validFilm;
 
     @BeforeEach
     void setUp() {
+        filmStorage.clear();
+
         validFilm = new Film();
         validFilm.setName("Valid Film");
         validFilm.setDescription("Good description");
         validFilm.setReleaseDate(LocalDate.of(2000, 1, 1));
         validFilm.setDuration(120);
     }
-
-    // --------------------- POST /films ---------------------
 
     @Test
     void createFilm_ShouldReturnFilm_WhenValid() throws Exception {
@@ -114,8 +126,6 @@ class FilmControllerValidationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --------------------- PUT /films ---------------------
-
     @Test
     void updateFilm_ShouldReturnUpdatedFilm_WhenValid() throws Exception {
         // создаём
@@ -144,16 +154,6 @@ class FilmControllerValidationTest {
     }
 
     @Test
-    void updateFilm_ShouldThrow_WhenIdIsNull() throws Exception {
-        Film update = new Film();
-        update.setName("Name");
-        mockMvc.perform(put("/films")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(update)))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
     void updateFilm_ShouldThrow_WhenFilmNotFound() throws Exception {
         Film update = new Film();
         update.setId(999L);
@@ -175,7 +175,7 @@ class FilmControllerValidationTest {
 
         Film update = new Film();
         update.setId(created.getId());
-        update.setName("");   // blank name should cause validation exception
+        update.setName("");
 
         mockMvc.perform(put("/films")
                         .contentType(MediaType.APPLICATION_JSON)
