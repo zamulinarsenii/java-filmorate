@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -94,8 +95,8 @@ public class UserService {
         User user = userStorage.findById(userId);
 
         if (!user.getFriends().contains(friendId)) {
-            log.info("Дружба между {} и {} удалена", userId, friendId);
-            return;
+            log.debug("Пользователь {} не является другом {}", userId, friendId);
+            throw new NotFoundException("Пользователь с id " + friendId + " не является другом");
         }
 
         User friend = userStorage.findById(friendId);
