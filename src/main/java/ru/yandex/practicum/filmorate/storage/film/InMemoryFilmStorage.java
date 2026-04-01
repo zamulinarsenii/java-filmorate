@@ -45,6 +45,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
         return film;
     }
+
     public void clear() {
         films.clear();
         nextId = 1;

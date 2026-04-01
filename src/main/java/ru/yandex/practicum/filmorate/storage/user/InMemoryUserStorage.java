@@ -45,6 +45,7 @@ public class InMemoryUserStorage implements UserStorage {
         }
         return user;
     }
+
     public void clear() {
         users.clear();
         nextId = 1;
