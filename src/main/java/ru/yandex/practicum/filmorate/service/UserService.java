@@ -95,8 +95,8 @@ public class UserService {
         User user = userStorage.findById(userId);
 
         if (!user.getFriends().contains(friendId)) {
-            log.debug("Пользователь {} не является другом {}", userId, friendId);
-            throw new NotFoundException("Пользователь с id " + friendId + " не является другом");
+            log.info("Дружба между {} и {} удалена", userId, friendId);
+            return;
         }
 
         User friend = userStorage.findById(friendId);
