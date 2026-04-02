@@ -92,13 +92,12 @@ public class UserService {
 
         log.info("Удаление друга: userId={}, friendId={}", userId, friendId);
         User user = userStorage.findById(userId);
+        User friend = userStorage.findById(friendId);
 
         if (!user.getFriends().contains(friendId)) {
             log.debug("Пользователь {} не является другом {}", userId, friendId);
             return;
         }
-
-        User friend = userStorage.findById(friendId);
 
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
