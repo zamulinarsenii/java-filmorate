@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -48,16 +51,14 @@ class FilmorateApplicationIntegrationTest {
 
     @Test
     void shouldPersistFilmWithMpaAndGenresThroughApi() throws Exception {
-        String filmJson = """
-                {
-                  "name": "Database Film",
-                  "description": "Stored in H2",
-                  "releaseDate": "2000-01-01",
-                  "duration": 120,
-                  "mpa": {"id": 1},
-                  "genres": [{"id": 1}, {"id": 2}]
-                }
-                """;
+        String filmJson = objectMapper.writeValueAsString(Map.of(
+                "name", "Database Film",
+                "description", "Stored in H2",
+                "releaseDate", "2000-01-01",
+                "duration", 120,
+                "mpa", Map.of("id", 1),
+                "genres", List.of(Map.of("id", 1), Map.of("id", 2))
+        ));
 
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,14 +89,12 @@ class FilmorateApplicationIntegrationTest {
     }
 
     private long createUser(String email, String login) throws Exception {
-        String json = """
-                {
-                  "email": "%s",
-                  "login": "%s",
-                  "name": "%s",
-                  "birthday": "2000-01-01"
-                }
-                """.formatted(email, login, login);
+        String json = objectMapper.writeValueAsString(Map.of(
+                "email", email,
+                "login", login,
+                "name", login,
+                "birthday", "2000-01-01"
+        ));
         String response = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
