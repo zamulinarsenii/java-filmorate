@@ -12,13 +12,17 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -48,15 +52,12 @@ public class FilmDbStorage implements FilmStorage {
         return film;
     };
 
-    private static final RowMapper<Genre> GENRE_MAPPER = (rs, rowNum) ->
-            new Genre(rs.getInt("genre_id"), rs.getString("name"));
-
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public List<Film> findAll() {
         List<Film> films = jdbcTemplate.query(SELECT_FILMS + " ORDER BY f.film_id", FILM_MAPPER);
-        films.forEach(this::loadGenres);
+        loadGenres(films);
         return films;
     }
 
@@ -66,7 +67,7 @@ public class FilmDbStorage implements FilmStorage {
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
-        loadGenres(film);
+        loadGenres(List.of(film));
         return film;
     }
 
@@ -104,7 +105,8 @@ public class FilmDbStorage implements FilmStorage {
                 UPDATE films
                 SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ?
                 WHERE film_id = ?
-                """, film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), mpaId, film.getId());
+                """, film.getName(), film.getDescription(), film.getReleaseDate(),
+                film.getDuration(), mpaId, film.getId());
         if (updated == 0) {
             throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
         }
@@ -114,14 +116,15 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public void addLike(long filmId, long userId) {
+    public void addLike(Film film, User user) {
         jdbcTemplate.update("MERGE INTO film_likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)",
-                filmId, userId);
+                film.getId(), user.getId());
     }
 
     @Override
-    public boolean removeLike(long filmId, long userId) {
-        return jdbcTemplate.update("DELETE FROM film_likes WHERE film_id = ? AND user_id = ?", filmId, userId) > 0;
+    public boolean removeLike(Film film, User user) {
+        return jdbcTemplate.update("DELETE FROM film_likes WHERE film_id = ? AND user_id = ?",
+                film.getId(), user.getId()) > 0;
     }
 
     @Override
@@ -131,19 +134,37 @@ public class FilmDbStorage implements FilmStorage {
                          f.film_id
                 LIMIT ?
                 """, FILM_MAPPER, count);
-        films.forEach(this::loadGenres);
+        loadGenres(films);
         return films;
     }
 
-    private void loadGenres(Film film) {
-        List<Genre> genres = jdbcTemplate.query("""
-                SELECT g.genre_id, g.name
+    private void loadGenres(List<Film> films) {
+        if (films.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Film> filmsById = new LinkedHashMap<>();
+        films.forEach(film -> {
+            film.setGenres(new LinkedHashSet<>());
+            filmsById.put(film.getId(), film);
+        });
+
+        String placeholders = String.join(", ", Collections.nCopies(filmsById.size(), "?"));
+        jdbcTemplate.query("""
+                SELECT fg.film_id, g.genre_id, g.name
                 FROM genres g
                 JOIN film_genres fg ON fg.genre_id = g.genre_id
-                WHERE fg.film_id = ?
-                ORDER BY g.genre_id
-                """, GENRE_MAPPER, film.getId());
-        film.setGenres(new LinkedHashSet<>(genres));
+                WHERE fg.film_id IN (%s)
+                ORDER BY fg.film_id, g.genre_id
+                """.formatted(placeholders), resultSet -> {
+            Film film = filmsById.get(resultSet.getLong("film_id"));
+            if (film != null) {
+                film.getGenres().add(new Genre(
+                        resultSet.getInt("genre_id"),
+                        resultSet.getString("name")
+                ));
+            }
+        }, filmsById.keySet().toArray());
     }
 
     private void saveGenres(Film film) {

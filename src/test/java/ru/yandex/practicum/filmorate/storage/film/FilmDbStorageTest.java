@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -51,18 +52,18 @@ class FilmDbStorageTest {
     void shouldManageLikesAndReturnPopularFilms() {
         Film first = createFilm("First", 1, 1);
         Film second = createFilm("Second", 2, 2);
-        long firstUser = createUser("first@test.ru", "first");
-        long secondUser = createUser("second@test.ru", "second");
+        User firstUser = createUser("first@test.ru", "first");
+        User secondUser = createUser("second@test.ru", "second");
 
-        filmStorage.addLike(second.getId(), firstUser);
-        filmStorage.addLike(second.getId(), secondUser);
-        filmStorage.addLike(first.getId(), firstUser);
+        filmStorage.addLike(second, firstUser);
+        filmStorage.addLike(second, secondUser);
+        filmStorage.addLike(first, firstUser);
 
         assertThat(filmStorage.getPopularFilms(2))
                 .extracting(Film::getId)
                 .containsExactly(second.getId(), first.getId());
-        assertThat(filmStorage.removeLike(second.getId(), secondUser)).isTrue();
-        assertThat(filmStorage.removeLike(second.getId(), secondUser)).isFalse();
+        assertThat(filmStorage.removeLike(second, secondUser)).isTrue();
+        assertThat(filmStorage.removeLike(second, secondUser)).isFalse();
     }
 
     @Test
@@ -86,9 +87,10 @@ class FilmDbStorageTest {
         return filmStorage.create(film);
     }
 
-    private long createUser(String email, String login) {
+    private User createUser(String email, String login) {
         jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)",
                 email, login, login, LocalDate.of(2000, 1, 1));
-        return jdbcTemplate.queryForObject("SELECT user_id FROM users WHERE login = ?", Long.class, login);
+        Long id = jdbcTemplate.queryForObject("SELECT user_id FROM users WHERE login = ?", Long.class, login);
+        return new User(id, email, login, login, LocalDate.of(2000, 1, 1));
     }
 }

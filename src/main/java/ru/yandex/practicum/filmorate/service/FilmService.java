@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
@@ -77,18 +78,18 @@ public class FilmService {
 
     public void addLike(long filmId, long userId) {
         log.info("Добавление лайка: filmId={}, userId={}", filmId, userId);
-        filmStorage.findById(filmId);
-        userStorage.findById(userId);
-        filmStorage.addLike(filmId, userId);
+        Film film = filmStorage.findById(filmId);
+        User user = userStorage.findById(userId);
+        filmStorage.addLike(film, user);
         log.info("Лайк добавлен: filmId={}, userId={}", filmId, userId);
     }
 
     public void removeLike(long filmId, long userId) {
         log.info("Удаление лайка: filmId={}, userId={}", filmId, userId);
-        filmStorage.findById(filmId);
-        userStorage.findById(userId);
+        Film film = filmStorage.findById(filmId);
+        User user = userStorage.findById(userId);
 
-        if (!filmStorage.removeLike(filmId, userId)) {
+        if (!filmStorage.removeLike(film, user)) {
             log.debug("Пользователь {} не ставил лайк фильму {}", userId, filmId);
             throw new NotFoundException("Пользователь с id " + userId + " не ставил лайк этому фильму");
         }
@@ -141,13 +142,13 @@ public class FilmService {
             return;
         }
 
-        LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+        LinkedHashSet<Integer> genreIds = new LinkedHashSet<>();
         for (Genre genre : film.getGenres()) {
             if (genre == null || genre.getId() == null) {
                 throw new ValidationException("Id жанра должен быть указан");
             }
-            genres.add(genreStorage.findById(genre.getId()));
+            genreIds.add(genre.getId());
         }
-        film.setGenres(genres);
+        film.setGenres(new LinkedHashSet<>(genreStorage.findByIds(genreIds)));
     }
 }

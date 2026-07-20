@@ -7,7 +7,11 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,5 +32,31 @@ public class GenreDbStorage implements GenreStorage {
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Жанр с id " + id + " не найден"));
+    }
+
+    @Override
+    public List<Genre> findByIds(Collection<Integer> ids) {
+        Set<Integer> uniqueIds = new LinkedHashSet<>(ids);
+        if (uniqueIds.isEmpty()) {
+            return List.of();
+        }
+
+        String placeholders = String.join(", ", Collections.nCopies(uniqueIds.size(), "?"));
+        List<Genre> genres = jdbcTemplate.query(
+                "SELECT * FROM genres WHERE genre_id IN (" + placeholders + ") ORDER BY genre_id",
+                GENRE_MAPPER,
+                uniqueIds.toArray()
+        );
+
+        if (genres.size() != uniqueIds.size()) {
+            Set<Integer> foundIds = new LinkedHashSet<>();
+            genres.forEach(genre -> foundIds.add(genre.getId()));
+            Integer missingId = uniqueIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .findFirst()
+                    .orElseThrow();
+            throw new NotFoundException("Жанр с id " + missingId + " не найден");
+        }
+        return genres;
     }
 }
