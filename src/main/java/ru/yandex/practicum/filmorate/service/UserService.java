@@ -9,8 +9,6 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -68,20 +66,13 @@ public class UserService {
 
     public void addFriend(long userId, long friendId) {
         log.info("Добавление друга: userId={}, friendId={}", userId, friendId);
-        User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
-
-        if (user.getFriends().contains(friendId)) {
-            log.debug("Пользователь {} уже является другом {}", userId, friendId);
-            return; // уже друзья, ничего не делаем
+        if (userId == friendId) {
+            throw new ValidationException("Нельзя добавить самого себя в друзья");
         }
-
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
-
-        userStorage.update(user);
-        userStorage.update(friend);
-        log.info("Дружба между {} и {} установлена", userId, friendId);
+        userStorage.findById(userId);
+        userStorage.findById(friendId);
+        userStorage.addFriend(userId, friendId);
+        log.info("Пользователь {} добавил пользователя {} в друзья", userId, friendId);
     }
 
     public void removeFriend(long userId, long friendId) {
@@ -91,40 +82,21 @@ public class UserService {
         }
 
         log.info("Удаление друга: userId={}, friendId={}", userId, friendId);
-        User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
-
-        if (!user.getFriends().contains(friendId)) {
-            log.debug("Пользователь {} не является другом {}", userId, friendId);
-            return;
-        }
-
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-
-        userStorage.update(user);
-        userStorage.update(friend);
-        log.info("Дружба между {} и {} удалена", userId, friendId);
+        userStorage.findById(userId);
+        userStorage.findById(friendId);
+        userStorage.removeFriend(userId, friendId);
+        log.info("Пользователь {} удалил пользователя {} из друзей", userId, friendId);
     }
 
     public List<User> getFriends(long userId) {
-        User user = userStorage.findById(userId);
-        return user.getFriends().stream()
-                .map(userStorage::findById)
-                .collect(Collectors.toList());
+        userStorage.findById(userId);
+        return userStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(long userId, long otherId) {
-        User user = userStorage.findById(userId);
-        User other = userStorage.findById(otherId);
-
-        Set<Long> commonIds = user.getFriends().stream()
-                .filter(other.getFriends()::contains)
-                .collect(Collectors.toSet());
-
-        return commonIds.stream()
-                .map(userStorage::findById)
-                .collect(Collectors.toList());
+        userStorage.findById(userId);
+        userStorage.findById(otherId);
+        return userStorage.getCommonFriends(userId, otherId);
     }
 
     private void validateUser(User user) {

@@ -1,0 +1,48 @@
+package ru.yandex.practicum.filmorate.storage.genre;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Genre;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@JdbcTest
+@AutoConfigureTestDatabase
+@Import(GenreDbStorage.class)
+class GenreDbStorageTest {
+    @Autowired
+    private GenreDbStorage genreStorage;
+
+    @Test
+    void shouldReturnGenres() {
+        assertThat(genreStorage.findAll()).hasSize(6);
+        assertThat(genreStorage.findById(1).getName()).isEqualTo("Комедия");
+    }
+
+    @Test
+    void shouldThrowForUnknownGenre() {
+        assertThatThrownBy(() -> genreStorage.findById(999))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldReturnGenresByIdsInOneCall() {
+        assertThat(genreStorage.findByIds(List.of(3, 1, 3)))
+                .extracting(Genre::getId)
+                .containsExactly(1, 3);
+    }
+
+    @Test
+    void shouldThrowWhenOneOfGenreIdsDoesNotExist() {
+        assertThatThrownBy(() -> genreStorage.findByIds(List.of(1, 999)))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("999");
+    }
+}
